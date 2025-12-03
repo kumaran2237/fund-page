@@ -67,4 +67,16 @@ footer {
   background: #1E3A8A;
   color: white;
 }
+.comparison-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.comparison-periods .card {
+  flex: 1;
+  min-width: 150px;
+  text-align: center;
+}
 
