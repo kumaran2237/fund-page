@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fund Dashboard</title>
+  <title>Mutual Fund Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -45,40 +45,30 @@
 
     <!-- Benchmark Comparison Section -->
     <section id="comparison">
-  <h2>Benchmark Comparison</h2>
-  <div class="cards">
-    <div class="card">Fund Return: <span id="fund-return">--</span></div>
-    <div class="card">Benchmark Return (NIFTY 50): <span id="benchmark-return">--</span></div>
-  </div>
+      <h2>Benchmark Comparison</h2>
+      <div class="cards">
+        <div class="card">Fund Return: <span id="fund-return">--</span></div>
+        <div class="card">Benchmark Return (NIFTY 50): <span id="benchmark-return">--</span></div>
+      </div>
 
-  <!-- Add this below -->
-  <div class="comparison-periods">
-    <div class="card">
-      1M Return: <span id="fund-1M">--</span> | Benchmark: <span id="bench-1M">--</span>
-    </div>
-    <div class="card">
-      3M Return: <span id="fund-3M">--</span> | Benchmark: <span id="bench-3M">--</span>
-    </div>
-    <div class="card">
-      6M Return: <span id="fund-6M">--</span> | Benchmark: <span id="bench-6M">--</span>
-    </div>
-    <div class="card">
-      1Y Return: <span id="fund-1Y">--</span> | Benchmark: <span id="bench-1Y">--</span>
-    </div>
-    <div class="card">
-      5Y Return: <span id="fund-5Y">--</span> | Benchmark: <span id="bench-5Y">--</span>
-    </div>
-  </div>
-</section>
-
+      <div class="comparison-periods">
+        <div class="card">1M Return: <span id="fund-1M">--</span> | Benchmark: <span id="bench-1M">--</span></div>
+        <div class="card">3M Return: <span id="fund-3M">--</span> | Benchmark: <span id="bench-3M">--</span></div>
+        <div class="card">6M Return: <span id="fund-6M">--</span> | Benchmark: <span id="bench-6M">--</span></div>
+        <div class="card">1Y Return: <span id="fund-1Y">--</span> | Benchmark: <span id="bench-1Y">--</span></div>
+        <div class="card">5Y Return: <span id="fund-5Y">--</span> | Benchmark: <span id="bench-5Y">--</span></div>
+      </div>
+    </section>
   </main>
 
   <footer>
     <p>© 2025 Mutual Fund Dashboard</p>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
