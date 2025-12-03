@@ -1,10 +1,17 @@
-body {
-  font-family: Arial, sans-serif;
+/* Reset */
+* {
   margin: 0;
   padding: 0;
-  background: #f5f5f5;
+  box-sizing: border-box;
 }
 
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+}
+
+/* Header */
 header {
   background: #1E3A8A;
   color: white;
@@ -12,22 +19,22 @@ header {
 }
 
 header h1 {
-  margin: 0;
+  margin-bottom: 0.5rem;
 }
 
 nav ul {
   list-style: none;
   display: flex;
   gap: 1rem;
-  padding: 0;
-  margin: 0.5rem 0 0 0;
 }
 
 nav a {
   color: white;
   text-decoration: none;
+  font-weight: bold;
 }
 
+/* Main sections */
 main {
   padding: 1rem;
 }
@@ -51,6 +58,11 @@ section {
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* Chart filters */
+.chart-filters {
+  margin-bottom: 1rem;
+}
+
 .chart-filters button {
   margin-right: 0.5rem;
   padding: 0.5rem 1rem;
@@ -61,12 +73,11 @@ section {
   cursor: pointer;
 }
 
-footer {
-  text-align: center;
-  padding: 1rem;
-  background: #1E3A8A;
-  color: white;
+.chart-filters button:hover {
+  background: #3b5bbf;
 }
+
+/* Comparison cards */
 .comparison-periods {
   display: flex;
   flex-wrap: wrap;
@@ -79,17 +90,29 @@ footer {
   min-width: 150px;
   text-align: center;
 }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1rem;
+  background: #1E3A8A;
+  color: white;
+}
+
+/* Chart responsive */
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Responsive Layout */
 @media (max-width: 1024px) {
-  /* Reduce header spacing for tablets */
   header {
     padding: 0.8rem;
   }
-
   nav ul {
     gap: 0.5rem;
   }
-
   .chart-filters button {
     padding: 0.4rem 0.8rem;
     margin-bottom: 0.5rem;
@@ -97,34 +120,33 @@ footer {
 }
 
 @media (max-width: 768px) {
-  /* Stack cards vertically on smaller screens */
   .cards, .comparison-periods {
     flex-direction: column;
   }
-
   .cards .card, .comparison-periods .card {
     min-width: 100%;
   }
-
   main {
     padding: 0.8rem;
   }
 }
 
 @media (max-width: 480px) {
-  /* Small phones: reduce font and spacing */
   header h1 {
     font-size: 1.2rem;
   }
-
   nav ul {
     flex-direction: column;
     gap: 0.3rem;
   }
-
   .chart-filters button {
     width: 100%;
     margin-bottom: 0.3rem;
   }
+  .card {
+    font-size: 0.9rem;
+    padding: 0.8rem;
+  }
 }
+
 
