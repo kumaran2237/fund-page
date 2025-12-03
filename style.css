@@ -79,4 +79,52 @@ footer {
   min-width: 150px;
   text-align: center;
 }
+/* Responsive Layout */
+@media (max-width: 1024px) {
+  /* Reduce header spacing for tablets */
+  header {
+    padding: 0.8rem;
+  }
+
+  nav ul {
+    gap: 0.5rem;
+  }
+
+  .chart-filters button {
+    padding: 0.4rem 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Stack cards vertically on smaller screens */
+  .cards, .comparison-periods {
+    flex-direction: column;
+  }
+
+  .cards .card, .comparison-periods .card {
+    min-width: 100%;
+  }
+
+  main {
+    padding: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Small phones: reduce font and spacing */
+  header h1 {
+    font-size: 1.2rem;
+  }
+
+  nav ul {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .chart-filters button {
+    width: 100%;
+    margin-bottom: 0.3rem;
+  }
+}
 
