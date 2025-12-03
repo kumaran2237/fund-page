@@ -9,7 +9,7 @@ async function fetchFundData(code) {
   return await resp.json();
 }
 
-// Fetch benchmark data (placeholder / example)
+// Fetch benchmark data (placeholder)
 async function fetchBenchmarkData() {
   // Replace this URL with a working benchmark API if available
   const url = `https://nse‑api‑khaki.vercel.app/api/quote?symbol=NIFTY`; 
@@ -33,22 +33,21 @@ async function init() {
     const fundHistory = fundJson.data;
 
     // Prepare fund arrays
-    const fundLabels = fundHistory.map(d => d.date).reverse();
-    const fundData = fundHistory.map(d => parseFloat(d.nav)).reverse();
+    const fundFullLabels = fundHistory.map(d => d.date).reverse();
+    const fundFullData = fundHistory.map(d => parseFloat(d.nav)).reverse();
 
     // Try fetching benchmark data
-    let benchLabels = [], benchData = [];
+    let benchFullLabels = [], benchFullData = [];
     try {
       const benchJson = await fetchBenchmarkData();
-      // Example parsing — adjust based on actual API response
-      benchLabels = benchJson.data.map(d => d.timestamp); 
-      benchData = benchJson.data.map(d => d.close);
+      benchFullLabels = benchJson.data.map(d => d.timestamp); 
+      benchFullData = benchJson.data.map(d => d.close);
     } catch (benchErr) {
       console.warn("Could not fetch benchmark data, skipping benchmark chart:", benchErr);
     }
 
     // Populate overview cards
-    document.getElementById("nav-value").textContent = fundHistory[0].nav;
+    document.getElementById("nav-value").textContent = fundFullData[fundFullData.length - 1];
     document.getElementById("category-value").textContent = fundMeta.scheme_category || '';
     document.getElementById("aum-value").textContent = fundMeta.fund_house || '';
 
@@ -57,16 +56,16 @@ async function init() {
     const datasets = [
       {
         label: fundMeta.scheme_name || "Fund NAV",
-        data: fundData,
+        data: fundFullData.slice(),
         borderColor: '#1E3A8A',
         fill: false,
         tension: 0.2
       }
     ];
-    if (benchData.length) {
+    if (benchFullData.length) {
       datasets.push({
         label: niftyIndexSymbol,
-        data: benchData,
+        data: benchFullData.slice(),
         borderColor: '#D9534F',
         fill: false,
         tension: 0.2
@@ -76,7 +75,7 @@ async function init() {
     const chart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: fundLabels,
+        labels: fundFullLabels.slice(),
         datasets: datasets
       },
       options: {
@@ -91,12 +90,13 @@ async function init() {
       }
     });
 
-    // Chart range buttons
+    // Chart range buttons (fixed slicing)
     document.querySelectorAll('.chart-filters button').forEach(btn => {
       btn.addEventListener('click', () => {
         const range = btn.getAttribute('data-range');
-        const N = fundData.length;
+        const N = fundFullData.length;
         let sliceFrom = 0;
+
         switch(range) {
           case '1M': sliceFrom = Math.max(N - 22, 0); break;
           case '3M': sliceFrom = Math.max(N - 66, 0); break;
@@ -105,10 +105,12 @@ async function init() {
           case '5Y': sliceFrom = Math.max(N - 1300, 0); break;
           case 'ALL': sliceFrom = 0; break;
         }
-        chart.data.labels = fundLabels.slice(sliceFrom);
-        chart.data.datasets.forEach(ds => {
-          ds.data = ds.data.slice(sliceFrom);
-        });
+
+        chart.data.labels = fundFullLabels.slice(sliceFrom);
+        chart.data.datasets[0].data = fundFullData.slice(sliceFrom);
+        if (chart.data.datasets[1]) {
+          chart.data.datasets[1].data = benchFullData.slice(sliceFrom);
+        }
         chart.update();
       });
     });
@@ -123,10 +125,10 @@ async function init() {
     };
 
     Object.keys(ranges).forEach(period => {
-      const N = fundData.length;
+      const N = fundFullData.length;
       const sliceFrom = Math.max(N - ranges[period], 0);
-      const fundSlice = fundData.slice(sliceFrom);
-      const benchSlice = benchData.length ? benchData.slice(sliceFrom) : [];
+      const fundSlice = fundFullData.slice(sliceFrom);
+      const benchSlice = benchFullData.length ? benchFullData.slice(sliceFrom) : [];
 
       document.getElementById(`fund-${period}`).textContent = calculateReturn(fundSlice);
       document.getElementById(`bench-${period}`).textContent = benchSlice.length ? calculateReturn(benchSlice) : "--";
@@ -138,3 +140,4 @@ async function init() {
 }
 
 window.addEventListener('DOMContentLoaded', init);
+
