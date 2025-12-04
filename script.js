@@ -1,129 +1,98 @@
-// ===========================
-// CONFIG
-// ===========================
-const schemeCode = 125497; 
-const benchmarkSymbol = "^NSEI";  // NIFTY 50 Yahoo symbol
+const schemeCode = 125497;
+let fullNavData = [];
+let chart;
 
-let navHistory = [];
-let chartInstance = null;
+// Fetch Fund Data
+async function fetchFundData() {
+  const res = await fetch(`https://api.mfapi.in/mf/${schemeCode}`);
+  const data = await res.json();
 
-// ===========================
-// FETCH FUND DATA
-// ===========================
-async function loadFundData() {
-    const url = `https://api.mfapi.in/mf/${schemeCode}`;
+  // Overview Values
+  document.getElementById("nav-value").textContent =
+    data.data[data.data.length - 1].nav;
 
-    const res = await fetch(url);
-    const data = await res.json();
+  document.getElementById("aum-value").textContent = data.meta?.fund_house || "--";
+  document.getElementById("category-value").textContent = data.meta?.scheme_category || "--";
 
-    document.querySelector("#nav").innerText = data.data[0].nav;
-
-    navHistory = data.data
-        .map(x => ({ date: x.date, nav: parseFloat(x.nav) }))
-        .reverse();
-
-    updateChart(navHistory); // initial load
+  fullNavData = data.data.reverse(); // Arranged oldest → newest
+  updateChart("ALL");
 }
 
-// ===========================
-// FETCH BENCHMARK RETURNS
-// ===========================
-async function fetchBenchmark(periodDays) {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${benchmarkSymbol}?range=1y&interval=1d`;
-    const res = await fetch(url);
-    const data = await res.json();
+function filterData(range) {
+  const now = new Date();
+  const ranges = {
+    "1M": 30,
+    "3M": 90,
+    "6M": 180,
+    "1Y": 365,
+    "5Y": 1825
+  };
 
-    const prices = data.chart.result[0].indicators.quote[0].close;
-    const timestamps = data.chart.result[0].timestamp;
+  if (range === "ALL") return fullNavData;
 
-    let list = timestamps.map((t, i) => ({
-        date: new Date(t * 1000),
-        close: prices[i]
-    }));
+  const days = ranges[range];
 
-    list = list.filter(p => p.close !== null);
-
-    const end = list[list.length - 1].close;
-    const start = list[Math.max(0, list.length - periodDays)].close;
-
-    return (((end - start) / start) * 100).toFixed(2);
+  return fullNavData.filter(entry => {
+    const diff = (now - new Date(entry.date)) / (1000 * 60 * 60 * 24);
+    return diff <= days;
+  });
 }
 
-// ===========================
-// CALCULATE FUND RETURN
-// ===========================
-function calcFundReturn(days) {
-    if (navHistory.length < days) return "--";
+function updateChart(range) {
+  const chartData = filterData(range);
 
-    const start = navHistory[navHistory.length - days].nav;
-    const end = navHistory[navHistory.length - 1].nav;
+  const labels = chartData.map(d => d.date);
+  const values = chartData.map(d => parseFloat(d.nav));
 
-    return (((end - start) / start) * 100).toFixed(2);
-}
+  if (chart) chart.destroy();
 
-// ===========================
-// UPDATE RETURN CARDS
-// ===========================
-async function updateReturnCards(days) {
-    const fundReturn = calcFundReturn(days);
-    const benchmarkReturn = await fetchBenchmark(days);
-
-    document.querySelector("#fund-return").innerText = `Fund Return: ${fundReturn}%`;
-    document.querySelector("#benchmark-return").innerText = `Benchmark: ${benchmarkReturn}%`;
-}
-
-// ===========================
-// UPDATE CHART
-// ===========================
-function updateChart(dataSlice) {
-    const ctx = document.getElementById("chart").getContext("2d");
-
-    const labels = dataSlice.map(x => x.date);
-    const values = dataSlice.map(x => x.nav);
-
-    if (chartInstance) chartInstance.destroy();
-
-    chartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels,
-            datasets: [{
-                label: "NAV",
-                data: values,
-                borderWidth: 2,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
+  chart = new Chart(document.getElementById("performanceChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "NAV",
+        data: values,
+        borderColor: "#1a73e8",
+        backgroundColor: "rgba(26,115,232,0.2)",
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `NAV: ₹${ctx.raw}`
+          }
         }
-    });
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8 } },
+        y: { beginAtZero: false }
+      }
+    }
+  });
 }
 
-// ===========================
-// TIME RANGE BUTTON HANDLERS
-// ===========================
-function handlePeriod(days) {
-    const slicedData = navHistory.slice(-days);
-    updateChart(slicedData);
-    updateReturnCards(days);
-}
+// Range Button Click
+document.querySelectorAll(".chart-filters button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelector(".chart-filters .active")?.classList.remove("active");
+    btn.classList.add("active");
 
-document.getElementById("btn-1m").onclick = () => handlePeriod(30);
-document.getElementById("btn-3m").onclick = () => handlePeriod(90);
-document.getElementById("btn-6m").onclick = () => handlePeriod(180);
-document.getElementById("btn-1y").onclick = () => handlePeriod(365);
-document.getElementById("btn-5y").onclick = () => handlePeriod(365 * 5);
-document.getElementById("btn-all").onclick = () => {
-    updateChart(navHistory);
-    updateReturnCards(navHistory.length - 1);
-};
+    updateChart(btn.dataset.range);
+  });
+});
 
-// ===========================
-// INIT
-// ===========================
-loadFundData();
+// Init
+fetchFundData();
+
 
 
 
