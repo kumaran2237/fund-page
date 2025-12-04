@@ -1,164 +1,164 @@
-const schemeCode = 125497;  // your fund scheme code
-const niftyIndexSymbol = "NIFTY 50";  // benchmark
+// ----------------------------
+// CONFIG
+// ----------------------------
+const schemeCode = 125497;  // Your Mutual Fund Code
+const benchmarkSymbol = "NIFTY 50";
 
-// Fetch mutual fund data
-async function fetchFundData(code) {
-  const url = `https://api.mfapi.in/mf/${code}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error("Failed to fetch fund data");
-  return await resp.json();
+// Global variables
+let fundHistory = [];
+let benchmarkHistory = [];
+let chart;
+
+// ----------------------------
+// FETCH FUND DATA
+// ----------------------------
+async function fetchFundData() {
+  const url = `https://api.mfapi.in/mf/${schemeCode}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  // Store history
+  fundHistory = data.data.map(item => ({
+    date: new Date(item.date),
+    nav: parseFloat(item.nav)
+  })).reverse(); // reverse to oldest → latest
+
+  // Fill Overview section
+  document.getElementById("nav-value").innerText = data.data[0].nav;
+  document.getElementById("aum-value").innerText = data.meta.aum || "--";
+  document.getElementById("category-value").innerText = data.meta.scheme_category;
+
+  return true;
 }
 
-// Fetch benchmark data (placeholder API)
-async function fetchBenchmarkData() {
-  const url = `https://nse‑api‑khaki.vercel.app/api/quote?symbol=NIFTY`; 
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error("Failed to fetch benchmark data");
-  return await resp.json();
+// ----------------------------
+// FETCH BENCHMARK DATA (NIFTY 50)
+// THIS USES YAHOO FINANCE V8 API
+// ----------------------------
+async function fetchBenchmark() {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?range=5y&interval=1d`;
+  const res = await fetch(url);
+  const json = await res.json();
+
+  let timestamps = json.chart.result[0].timestamp;
+  let closes = json.chart.result[0].indicators.quote[0].close;
+
+  benchmarkHistory = timestamps.map((t, i) => ({
+    date: new Date(t * 1000),
+    value: closes[i]
+  }));
+
+  return true;
 }
 
-// Calculate returns
-function calculateReturn(data) {
-  if (data.length < 2) return "--";
-  const start = data[0];
-  const end = data[data.length - 1];
-  return (((end - start) / start) * 100).toFixed(2) + "%";
+// ----------------------------
+// FILTER DATA BY RANGE
+// ----------------------------
+function filterRange(data, months) {
+  if (months === "ALL") return data;
+
+  const now = new Date();
+  const cutoff = new Date();
+
+  if (months.endsWith("Y")) months = parseInt(months) * 12;
+
+  cutoff.setMonth(now.getMonth() - parseInt(months));
+
+  return data.filter(item => item.date >= cutoff);
 }
 
-async function init() {
-  let fundFullData, fundFullLabels, fundMeta;
-  let benchFullData = [], benchFullLabels = [];
+// ----------------------------
+// CREATE / UPDATE CHART
+// ----------------------------
+function renderChart(range = "ALL") {
+  const filteredFund = filterRange(fundHistory, range);
+  const filteredBench = filterRange(benchmarkHistory, range);
 
-  // Load from localStorage if available
-  if (localStorage.getItem('fundData')) {
-    fundFullData = JSON.parse(localStorage.getItem('fundData'));
-    fundFullLabels = JSON.parse(localStorage.getItem('fundLabels'));
-    fundMeta = JSON.parse(localStorage.getItem('fundMeta'));
+  const labels = filteredFund.map(x => x.date.toISOString().split("T")[0]);
+  const fundValues = filteredFund.map(x => x.nav);
+  const benchValues = filteredBench.map(x => x.value);
 
-    if (localStorage.getItem('benchData')) {
-      benchFullData = JSON.parse(localStorage.getItem('benchData'));
-      benchFullLabels = JSON.parse(localStorage.getItem('benchLabels'));
-    }
-  } else {
-    // Fetch fund data
-    const fundJson = await fetchFundData(schemeCode);
-    fundMeta = fundJson.meta;
-    const fundHistory = fundJson.data;
+  if (chart) chart.destroy();
 
-    fundFullLabels = fundHistory.map(d => d.date).reverse();
-    fundFullData = fundHistory.map(d => parseFloat(d.nav)).reverse();
+  const ctx = document.getElementById("performanceChart").getContext("2d");
 
-    // Fetch benchmark data
-    try {
-      const benchJson = await fetchBenchmarkData();
-      benchFullLabels = benchJson.data.map(d => d.timestamp);
-      benchFullData = benchJson.data.map(d => d.close);
-    } catch (benchErr) {
-      console.warn("Benchmark fetch failed:", benchErr);
-    }
-
-    // Fallback: if benchmark data is empty, create dummy data
-    if (benchFullData.length === 0) {
-      benchFullLabels = fundFullLabels.slice();
-      benchFullData = fundFullData.map(v => v * 0.95); // 5% below fund NAV
-    }
-
-    // Store in localStorage
-    localStorage.setItem('fundData', JSON.stringify(fundFullData));
-    localStorage.setItem('fundLabels', JSON.stringify(fundFullLabels));
-    localStorage.setItem('fundMeta', JSON.stringify(fundMeta));
-    localStorage.setItem('benchData', JSON.stringify(benchFullData));
-    localStorage.setItem('benchLabels', JSON.stringify(benchFullLabels));
-  }
-
-  // Populate overview cards
-  document.getElementById("nav-value").textContent = fundFullData[fundFullData.length - 1];
-  document.getElementById("category-value").textContent = fundMeta.scheme_category || '';
-  document.getElementById("aum-value").textContent = fundMeta.fund_house || '';
-
-  // Create chart
-  const ctx = document.getElementById('performanceChart').getContext('2d');
-  const datasets = [
-    {
-      label: fundMeta.scheme_name || "Fund NAV",
-      data: fundFullData.slice(),
-      borderColor: '#1E3A8A',
-      fill: false,
-      tension: 0.2
-    },
-    {
-      label: niftyIndexSymbol,
-      data: benchFullData.slice(),
-      borderColor: 'red',
-      borderWidth: 3,
-      pointRadius: 0,     
-      fill: false,
-      tension: 0.2
-   }
-  ];
-
-  const chart = new Chart(ctx, {
-    type: 'line',
+  chart = new Chart(ctx, {
+    type: "line",
     data: {
-      labels: fundFullLabels.slice(),
-      datasets: datasets
+      labels,
+      datasets: [
+        {
+          label: "Fund NAV",
+          data: fundValues,
+          borderColor: "blue",
+          tension: 0.2
+        },
+        {
+          label: "Nifty 50",
+          data: benchValues,
+          borderColor: "orange",
+          tension: 0.2
+        }
+      ]
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: true } },
-      scales: {
-        x: { title: { display: true, text: 'Date' } },
-        y: { title: { display: true, text: 'Value (₹ / Index points)' } }
-      }
+      maintainAspectRatio: false
     }
   });
-
-  // Chart range buttons
-  document.querySelectorAll('.chart-filters button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const range = btn.getAttribute('data-range');
-      const N = fundFullData.length;
-      let sliceFrom = 0;
-
-      switch(range) {
-        case '1M': sliceFrom = Math.max(N - 22, 0); break;
-        case '3M': sliceFrom = Math.max(N - 66, 0); break;
-        case '6M': sliceFrom = Math.max(N - 130, 0); break;
-        case '1Y': sliceFrom = Math.max(N - 260, 0); break;
-        case '5Y': sliceFrom = Math.max(N - 1300, 0); break;
-        case 'ALL': sliceFrom = 0; break;
-      }
-
-      chart.data.labels = fundFullLabels.slice(sliceFrom);
-      chart.data.datasets[0].data = fundFullData.slice(sliceFrom);
-      chart.data.datasets[1].data = benchFullData.slice(sliceFrom);
-      chart.update();
-    });
-  });
-
-  // Comparison cards calculation
-  const ranges = { "1M": 22, "3M": 66, "6M": 130, "1Y": 260, "5Y": 1300 };
-  Object.keys(ranges).forEach(period => {
-    const N = fundFullData.length;
-    const sliceFrom = Math.max(N - ranges[period], 0);
-    const fundSlice = fundFullData.slice(sliceFrom);
-    const benchSlice = benchFullData.slice(sliceFrom);
-
-    document.getElementById(`fund-${period}`).textContent = calculateReturn(fundSlice);
-    document.getElementById(`bench-${period}`).textContent = calculateReturn(benchSlice);
-  });
-
-  // Optional: Refresh data button
-  const refreshBtn = document.getElementById('refresh-data');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      localStorage.clear();
-      location.reload();
-    });
-  }
 }
 
-window.addEventListener('DOMContentLoaded', init);
+// ----------------------------
+// CALCULATE RETURNS
+// ----------------------------
+function calculateReturn(history, months) {
+  const filtered = filterRange(history, months);
+  if (filtered.length < 2) return "--";
+
+  const start = filtered[0].value || filtered[0].nav;
+  const end = filtered[filtered.length - 1].value || filtered[filtered.length - 1].nav;
+
+  return (((end - start) / start) * 100).toFixed(2) + "%";
+}
+
+// ----------------------------
+// UPDATE COMPARISON CARDS
+// ----------------------------
+function updateComparison() {
+  const periods = ["1M", "3M", "6M", "1Y", "5Y"];
+
+  periods.forEach(p => {
+    document.getElementById(`fund-${p}`).innerText = calculateReturn(fundHistory, p);
+    document.getElementById(`bench-${p}`).innerText = calculateReturn(benchmarkHistory, p);
+  });
+
+  // Overall return
+  document.getElementById("fund-return").innerText = calculateReturn(fundHistory, "ALL");
+  document.getElementById("benchmark-return").innerText = calculateReturn(benchmarkHistory, "ALL");
+}
+
+// ----------------------------
+// SETUP BUTTON EVENTS
+// ----------------------------
+document.querySelectorAll(".chart-filters button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    renderChart(btn.dataset.range);
+  });
+});
+
+// ----------------------------
+// INITIALIZATION
+// ----------------------------
+async function init() {
+  await fetchFundData();
+  await fetchBenchmark();
+
+  renderChart("ALL");
+  updateComparison();
+}
+
+init();
+
 
 
 
