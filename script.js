@@ -1,216 +1,130 @@
-// ------------------------------------
+// ===========================
 // CONFIG
-// ------------------------------------
-const schemeCode = 125497;  // Your Mutual Fund Code
-const benchmarkSymbol = "NIFTY 50";
+// ===========================
+const schemeCode = 125497; 
+const benchmarkSymbol = "^NSEI";  // NIFTY 50 Yahoo symbol
 
-let fundHistory = [];
-let benchmarkHistory = [];
-let chart;
+let navHistory = [];
+let chartInstance = null;
 
-// ------------------------------------
-// FETCH FUND DATA (MFAPI)
-// ------------------------------------
-async function fetchFundData() {
-  const url = `https://api.mfapi.in/mf/${schemeCode}`;
-  const res = await fetch(url);
-  const data = await res.json();
+// ===========================
+// FETCH FUND DATA
+// ===========================
+async function loadFundData() {
+    const url = `https://api.mfapi.in/mf/${schemeCode}`;
 
-  // Convert MFAPI format
-  fundHistory = data.data.map(item => ({
-    date: new Date(item.date),
-    nav: parseFloat(item.nav)
-  })).reverse();
+    const res = await fetch(url);
+    const data = await res.json();
 
-  // Fill UI
-  document.getElementById("nav-value").innerText = data.data[0].nav;
-  document.getElementById("aum-value").innerText = data.meta.aum || "--";
-  document.getElementById("category-value").innerText = data.meta.scheme_category;
+    document.querySelector("#nav").innerText = data.data[0].nav;
 
-  return true;
+    navHistory = data.data
+        .map(x => ({ date: x.date, nav: parseFloat(x.nav) }))
+        .reverse();
+
+    updateChart(navHistory); // initial load
 }
 
-// ------------------------------------
-// FETCH BENCHMARK (NIFTY 50) — Yahoo API
-// ------------------------------------
-async function fetchBenchmark() {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?range=5y&interval=1d`;
-  const res = await fetch(url);
-  const json = await res.json();
+// ===========================
+// FETCH BENCHMARK RETURNS
+// ===========================
+async function fetchBenchmark(periodDays) {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${benchmarkSymbol}?range=1y&interval=1d`;
+    const res = await fetch(url);
+    const data = await res.json();
 
-  let timestamps = json.chart.result[0].timestamp;
-  let closes = json.chart.result[0].indicators.quote[0].close;
+    const prices = data.chart.result[0].indicators.quote[0].close;
+    const timestamps = data.chart.result[0].timestamp;
 
-  benchmarkHistory = timestamps.map((t, i) => ({
-    date: new Date(t * 1000),
-    value: closes[i]
-  }));
+    let list = timestamps.map((t, i) => ({
+        date: new Date(t * 1000),
+        close: prices[i]
+    }));
 
-  return true;
+    list = list.filter(p => p.close !== null);
+
+    const end = list[list.length - 1].close;
+    const start = list[Math.max(0, list.length - periodDays)].close;
+
+    return (((end - start) / start) * 100).toFixed(2);
 }
 
-// ------------------------------------
-// FILTER DATA BY RANGE
-// ------------------------------------
-function filterRange(data, months) {
-  if (months === "ALL") return data;
+// ===========================
+// CALCULATE FUND RETURN
+// ===========================
+function calcFundReturn(days) {
+    if (navHistory.length < days) return "--";
 
-  const now = new Date();
-  const cutoff = new Date();
+    const start = navHistory[navHistory.length - days].nav;
+    const end = navHistory[navHistory.length - 1].nav;
 
-  if (months.endsWith("Y")) months = parseInt(months) * 12;
-
-  cutoff.setMonth(now.getMonth() - parseInt(months));
-
-  return data.filter(row => row.date >= cutoff);
+    return (((end - start) / start) * 100).toFixed(2);
 }
 
-// ------------------------------------
-// UPGRADED PREMIUM CHART (Groww-style)
-// ------------------------------------
-function renderChart(range = "ALL") {
-  const filteredFund = filterRange(fundHistory, range);
-  const filteredBench = filterRange(benchmarkHistory, range);
+// ===========================
+// UPDATE RETURN CARDS
+// ===========================
+async function updateReturnCards(days) {
+    const fundReturn = calcFundReturn(days);
+    const benchmarkReturn = await fetchBenchmark(days);
 
-  const labels = filteredFund.map(x => x.date.toISOString().split("T")[0]);
-  const fundValues = filteredFund.map(x => x.nav);
-  const benchValues = filteredBench.map(x => x.value);
+    document.querySelector("#fund-return").innerText = `Fund Return: ${fundReturn}%`;
+    document.querySelector("#benchmark-return").innerText = `Benchmark: ${benchmarkReturn}%`;
+}
 
-  const ctx = document.getElementById("performanceChart").getContext("2d");
+// ===========================
+// UPDATE CHART
+// ===========================
+function updateChart(dataSlice) {
+    const ctx = document.getElementById("chart").getContext("2d");
 
-  // Destroy previous chart
-  if (chart) chart.destroy();
+    const labels = dataSlice.map(x => x.date);
+    const values = dataSlice.map(x => x.nav);
 
-  // Gradient for fund
-  const gradientFund = ctx.createLinearGradient(0, 0, 0, 400);
-  gradientFund.addColorStop(0, "rgba(0, 123, 255, 0.35)");
-  gradientFund.addColorStop(1, "rgba(0, 123, 255, 0)");
+    if (chartInstance) chartInstance.destroy();
 
-  // Gradient for benchmark
-  const gradientBench = ctx.createLinearGradient(0, 0, 0, 400);
-  gradientBench.addColorStop(0, "rgba(255, 140, 0, 0.35)");
-  gradientBench.addColorStop(1, "rgba(255, 140, 0, 0)");
-
-  chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Fund NAV",
-          data: fundValues,
-          borderColor: "#007bff",
-          backgroundColor: gradientFund,
-          fill: true,
-          borderWidth: 2.5,
-          pointRadius: 0,
-          tension: 0.25
+    chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "NAV",
+                data: values,
+                borderWidth: 2,
+                tension: 0.4
+            }]
         },
-        {
-          label: "NIFTY 50",
-          data: benchValues,
-          borderColor: "#ff8c00",
-          backgroundColor: gradientBench,
-          fill: true,
-          borderWidth: 2.5,
-          pointRadius: 0,
-          tension: 0.25
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
         }
-      ]
-    },
-    options: {
-      animation: {
-        duration: 900,
-        easing: "easeOutQuart"
-      },
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          ticks: {
-            maxTicksLimit: 8,
-            color: "#444"
-          },
-          grid: { display: false }
-        },
-        y: {
-          ticks: {
-            color: "#444",
-            callback: val => val.toFixed(2)
-          },
-          grid: { color: "rgba(0,0,0,0.05)" }
-        }
-      },
-      plugins: {
-        tooltip: {
-          backgroundColor: "rgba(0,0,0,0.75)",
-          titleColor: "#fff",
-          bodyColor: "#fff",
-          padding: 10,
-          callbacks: {
-            label: function (ctx) {
-              return `${ctx.dataset.label}: ₹${ctx.raw.toFixed(2)}`;
-            }
-          }
-        },
-        legend: {
-          labels: { font: { size: 14 } }
-        }
-      }
-    }
-  });
+    });
 }
 
-// ------------------------------------
-// RETURN CALCULATION
-// ------------------------------------
-function calculateReturn(history, months) {
-  const filtered = filterRange(history, months);
-  if (filtered.length < 2) return "--";
-
-  const start = filtered[0].value || filtered[0].nav;
-  const end = filtered[filtered.length - 1].value || filtered[filtered.length - 1].nav;
-
-  return (((end - start) / start) * 100).toFixed(2) + "%";
+// ===========================
+// TIME RANGE BUTTON HANDLERS
+// ===========================
+function handlePeriod(days) {
+    const slicedData = navHistory.slice(-days);
+    updateChart(slicedData);
+    updateReturnCards(days);
 }
 
-// ------------------------------------
-// UPDATE COMPARISON CARDS
-// ------------------------------------
-function updateComparison() {
-  const periods = ["1M", "3M", "6M", "1Y", "5Y"];
+document.getElementById("btn-1m").onclick = () => handlePeriod(30);
+document.getElementById("btn-3m").onclick = () => handlePeriod(90);
+document.getElementById("btn-6m").onclick = () => handlePeriod(180);
+document.getElementById("btn-1y").onclick = () => handlePeriod(365);
+document.getElementById("btn-5y").onclick = () => handlePeriod(365 * 5);
+document.getElementById("btn-all").onclick = () => {
+    updateChart(navHistory);
+    updateReturnCards(navHistory.length - 1);
+};
 
-  periods.forEach(period => {
-    document.getElementById(`fund-${period}`).innerText = calculateReturn(fundHistory, period);
-    document.getElementById(`bench-${period}`).innerText = calculateReturn(benchmarkHistory, period);
-  });
+// ===========================
+// INIT
+// ===========================
+loadFundData();
 
-  document.getElementById("fund-return").innerText = calculateReturn(fundHistory, "ALL");
-  document.getElementById("benchmark-return").innerText = calculateReturn(benchmarkHistory, "ALL");
-}
-
-// ------------------------------------
-// BUTTON EVENTS (1M / 3M / 6M / 1Y / 5Y / ALL)
-// ------------------------------------
-document.querySelectorAll(".chart-filters button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    renderChart(btn.dataset.range);
-  });
-});
-
-// ------------------------------------
-// INITIALIZE DASHBOARD
-// ------------------------------------
-async function init() {
-  await fetchFundData();
-  await fetchBenchmark();
-
-  renderChart("ALL");
-  updateComparison();
-}
-
-init();
-;
 
 
 
