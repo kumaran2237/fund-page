@@ -3,35 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fund Graph</title>
+  <title>Mutual Fund Dashboard</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
+  <header>
+    <h1>Mutual Fund Dashboard</h1>
+    <nav>
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#performance">Performance</a></li>
+        <li><a href="#comparison">Comparison</a></li>
+      </ul>
+    </nav>
+  </header>
 
-  <div class="container">
-    <h2>NAV Performance</h2>
+  <main>
+    <!-- Overview -->
+    <section id="overview">
+      <h2>Fund Overview</h2>
+      <div class="cards">
+        <div class="card">NAV: <span id="nav-value">--</span></div>
+        <div class="card">AUM: <span id="aum-value">--</span></div>
+        <div class="card">Category: <span id="category-value">--</span></div>
+      </div>
+    </section>
 
-    <!-- Timeline buttons -->
-    <div class="time-buttons">
-      <button data-range="1m">1M</button>
-      <button data-range="3m">3M</button>
-      <button data-range="6m">6M</button>
-      <button data-range="1y">1Y</button>
-      <button data-range="5y">5Y</button>
-      <button data-range="all" class="active">ALL</button>
-    </div>
+    <!-- Chart Section -->
+    <section id="performance">
+      <h2>Performance</h2>
 
-    <div class="chart-box">
-      <canvas id="navChart"></canvas>
-      <div id="loading">Loading...</div>
-    </div>
-  </div>
+      <div class="chart-filters">
+        <button data-range="1M">1M</button>
+        <button data-range="3M">3M</button>
+        <button data-range="6M">6M</button>
+        <button data-range="1Y">1Y</button>
+        <button data-range="5Y">5Y</button>
+        <button data-range="ALL" class="active">ALL</button>
+      </div>
 
+      <div class="chart-container">
+        <div id="loader" class="loader"></div>
+        <canvas id="performanceChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Benchmark Comparison -->
+    <section id="comparison">
+      <h2>Benchmark Comparison</h2>
+      <div class="cards">
+        <div class="card">Fund Return: <span id="fund-return">--</span></div>
+        <div class="card">Benchmark Return (NIFTY 50): <span id="benchmark-return">--</span></div>
+      </div>
+
+      <div class="comparison-periods">
+        <div class="card">1M: <span id="fund-1M">--</span> | <span id="bench-1M">--</span></div>
+        <div class="card">3M: <span id="fund-3M">--</span> | <span id="bench-3M">--</span></div>
+        <div class="card">6M: <span id="fund-6M">--</span> | <span id="bench-6M">--</span></div>
+        <div class="card">1Y: <span id="fund-1Y">--</span> | <span id="bench-1Y">--</span></div>
+        <div class="card">5Y: <span id="fund-5Y">--</span> | <span id="bench-5Y">--</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 Mutual Fund Dashboard</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
