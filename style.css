@@ -1,102 +1,54 @@
 body {
+  background: #f4f6f9;
+  font-family: Arial;
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f7f7f7;
-}
-
-header {
-  background: #1a73e8;
-  color: white;
-  padding: 18px;
-  text-align: center;
-}
-
-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0 0;
-}
-
-nav li {
-  display: inline-block;
-  margin: 0 15px;
-}
-
-nav a {
-  color: white;
-  text-decoration: none;
-}
-
-section {
   padding: 20px;
 }
 
-.cards {
+.container {
+  max-width: 900px;
+  margin: auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.time-buttons {
   display: flex;
-  gap: 15px;
-  padding: 10px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
-.card {
-  background: white;
-  padding: 15px;
+.time-buttons button {
+  padding: 8px 16px;
   border-radius: 8px;
-  flex: 1;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.12);
-}
-
-.chart-filters {
-  text-align: center;
-  margin-bottom: 15px;
-}
-
-.chart-filters button {
-  padding: 10px 16px;
-  margin: 3px;
   border: none;
-  border-radius: 6px;
-  background: #ddd;
+  background: #dce1ff;
   cursor: pointer;
-  font-size: 14px;
+  font-weight: 600;
 }
 
-.chart-filters .active {
-  background: #1a73e8;
+.time-buttons button.active {
+  background: #4a62ff;
   color: white;
 }
 
-.chart-container {
-  width: 100%;
-  height: 420px;
+.chart-box {
   position: relative;
+  height: 400px;
 }
 
-#performanceChart {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Loader */
-.loader {
+#loading {
   display: none;
-  width: 45px;
-  height: 45px;
-  border: 4px solid #dcdcdc;
-  border-top-color: #1a73e8;
-  border-radius: 50%;
-  margin: 40px auto;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.comparison-periods .card {
+  position: absolute;
+  top: 45%;
+  width: 100%;
   text-align: center;
+  font-size: 18px;
+  font-weight: bold;
 }
+
 
 
 
