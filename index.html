@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mutual Fund Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <header>
     <h1>Mutual Fund Dashboard</h1>
@@ -19,7 +20,7 @@
   </header>
 
   <main>
-    <!-- Overview Section -->
+    <!-- Overview -->
     <section id="overview">
       <h2>Fund Overview</h2>
       <div class="cards">
@@ -29,7 +30,7 @@
       </div>
     </section>
 
-    <!-- Performance Chart Section -->
+    <!-- Chart Section -->
     <section id="performance">
       <h2>Performance</h2>
 
@@ -43,11 +44,12 @@
       </div>
 
       <div class="chart-container">
+        <div id="loader" class="loader"></div>
         <canvas id="performanceChart"></canvas>
       </div>
     </section>
 
-    <!-- Benchmark Comparison Section -->
+    <!-- Benchmark Comparison -->
     <section id="comparison">
       <h2>Benchmark Comparison</h2>
       <div class="cards">
@@ -56,11 +58,11 @@
       </div>
 
       <div class="comparison-periods">
-        <div class="card">1M Return: <span id="fund-1M">--</span> | Benchmark: <span id="bench-1M">--</span></div>
-        <div class="card">3M Return: <span id="fund-3M">--</span> | Benchmark: <span id="bench-3M">--</span></div>
-        <div class="card">6M Return: <span id="fund-6M">--</span> | Benchmark: <span id="bench-6M">--</span></div>
-        <div class="card">1Y Return: <span id="fund-1Y">--</span> | Benchmark: <span id="bench-1Y">--</span></div>
-        <div class="card">5Y Return: <span id="fund-5Y">--</span> | Benchmark: <span id="bench-5Y">--</span></div>
+        <div class="card">1M: <span id="fund-1M">--</span> | <span id="bench-1M">--</span></div>
+        <div class="card">3M: <span id="fund-3M">--</span> | <span id="bench-3M">--</span></div>
+        <div class="card">6M: <span id="fund-6M">--</span> | <span id="bench-6M">--</span></div>
+        <div class="card">1Y: <span id="fund-1Y">--</span> | <span id="bench-1Y">--</span></div>
+        <div class="card">5Y: <span id="fund-5Y">--</span> | <span id="bench-5Y">--</span></div>
       </div>
     </section>
   </main>
@@ -73,6 +75,7 @@
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
