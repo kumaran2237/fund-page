@@ -89,10 +89,12 @@ async function init() {
     {
       label: niftyIndexSymbol,
       data: benchFullData.slice(),
-      borderColor: '#D9534F',
+      borderColor: 'red',
+      borderWidth: 3,
+      pointRadius: 0,     
       fill: false,
       tension: 0.2
-    }
+   }
   ];
 
   const chart = new Chart(ctx, {
