@@ -1,3 +1,6 @@
+alert("JS Loaded Successfully");
+
+
 const schemeCode = 125497;
 let fullNavData = [];
 let chart;
