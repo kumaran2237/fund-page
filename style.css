@@ -148,5 +148,17 @@ canvas {
     padding: 0.8rem;
   }
 }
+#performanceChart {
+  width: 100% !important;
+  height: 420px !important;
+  display: block;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 420px;
+}
+
 
 
