@@ -1,63 +1,102 @@
-const apiURL = "https://api.mfapi.in/mf/125497";
-
-let fullData = [];
+const schemeCode = 125497;
+let fullNavData = [];
 let chart;
 
-async function loadFundData() {
-  showLoading(true);
-
-  const res = await fetch(apiURL);
-  const json = await res.json();
-
-  fullData = json.data
-    .map(d => ({
-      date: new Date(d.date.split("-").reverse().join("-")),
-      nav: parseFloat(d.nav)
-    }))
-    .sort((a, b) => a.date - b.date);
-
-  buildChart(fullData);
-  showLoading(false);
+// Show loading spinner
+function showLoading() {
+  document.getElementById("performanceChart").style.display = "none";
+  document.getElementById("loader").style.display = "block";
 }
 
-function showLoading(state) {
-  document.getElementById("loading").style.display = state ? "block" : "none";
+// Hide loading spinner
+function hideLoading() {
+  document.getElementById("performanceChart").style.display = "block";
+  document.getElementById("loader").style.display = "none";
 }
 
-function filterRange(range) {
+// Fetch Fund Data
+async function fetchFundData() {
+  showLoading();
+
+  const res = await fetch(`https://api.mfapi.in/mf/${schemeCode}`);
+  const data = await res.json();
+
+  // Overview Values
+  document.getElementById("nav-value").textContent =
+    data.data[data.data.length - 1].nav;
+
+  document.getElementById("aum-value").textContent = data.meta?.fund_house || "--";
+  document.getElementById("category-value").textContent =
+    data.meta?.scheme_category || "--";
+
+  fullNavData = data.data.reverse(); // oldest → newest order
+  updateChart("ALL");
+
+  hideLoading();
+}
+
+// Return % calculator
+function calculatePercentage(data) {
+  if (data.length < 2) return Array(data.length).fill(0);
+
+  const first = parseFloat(data[0].nav);
+  return data.map(d => (((parseFloat(d.nav) - first) / first) * 100).toFixed(2));
+}
+
+// Filter Data based on range
+function filterData(range) {
   const now = new Date();
-  let startDate;
+  const ranges = {
+    "1M": 30,
+    "3M": 90,
+    "6M": 180,
+    "1Y": 365,
+    "5Y": 1825
+  };
 
-  switch (range) {
-    case "1m": startDate = new Date(now.setMonth(now.getMonth() - 1)); break;
-    case "3m": startDate = new Date(now.setMonth(now.getMonth() - 3)); break;
-    case "6m": startDate = new Date(now.setMonth(now.getMonth() - 6)); break;
-    case "1y": startDate = new Date(now.setFullYear(now.getFullYear() - 1)); break;
-    case "5y": startDate = new Date(now.setFullYear(now.getFullYear() - 5)); break;
-    default:  return fullData;
-  }
+  if (range === "ALL") return fullNavData;
 
-  return fullData.filter(d => d.date >= startDate);
+  const days = ranges[range];
+
+  return fullNavData.filter(entry => {
+    const diff = (now - new Date(entry.date)) / (1000 * 60 * 60 * 24);
+    return diff <= days;
+  });
 }
 
-function buildChart(data) {
-  if (!data.length) return;
+// Update Chart
+function updateChart(range) {
+  const filtered = filterData(range);
+
+  const labels = filtered.map(d => d.date);
+  const navValues = filtered.map(d => parseFloat(d.nav));
+  const percentValues = calculatePercentage(filtered);
 
   if (chart) chart.destroy();
 
-  const ctx = document.getElementById("navChart").getContext("2d");
-
-  chart = new Chart(ctx, {
+  chart = new Chart(document.getElementById("performanceChart"), {
     type: "line",
     data: {
-      labels: data.map(d =>
-        d.date.toISOString().split("T")[0]
-      ),
+      labels,
       datasets: [
         {
           label: "NAV",
-          data: data.map(d => d.nav),
-          borderColor: "blue",
+          data: navValues,
+          borderColor: "#1a73e8",
+          backgroundColor: "rgba(26,115,232,0.2)",
+          yAxisID: "y",
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2,
+          pointRadius: 0
+        },
+        {
+          label: "% Returns",
+          data: percentValues,
+          borderColor: "#e63946",
+          backgroundColor: "rgba(230,57,70,0.2)",
+          yAxisID: "y1",
+          fill: false,
           tension: 0.4,
           borderWidth: 2,
           pointRadius: 0
@@ -66,30 +105,57 @@ function buildChart(data) {
     },
     options: {
       responsive: true,
-      animation: { duration: 800 },
-      scales: { x: { display: true }, y: { display: true } }
+      maintainAspectRatio: false,
+      animation: {
+        duration: 1200,
+        easing: "easeOutQuart"
+      },
+      plugins: {
+        tooltip: {
+          mode: "index",
+          intersect: false,
+          callbacks: {
+            label: (ctx) => {
+              if (ctx.dataset.label === "NAV") {
+                return `NAV: ₹${ctx.raw}`;
+              }
+              return `% Return: ${ctx.raw}%`;
+            }
+          }
+        },
+        legend: {
+          labels: {
+            usePointStyle: true
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: "linear",
+          position: "left",
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          grid: { drawOnChartArea: false }
+        }
+      }
     }
   });
 }
 
-document.querySelectorAll(".time-buttons button").forEach(btn => {
+// Button Click Events
+document.querySelectorAll(".chart-filters button").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".time-buttons button").forEach(b =>
-      b.classList.remove("active")
-    );
-
+    document.querySelector(".chart-filters .active")?.classList.remove("active");
     btn.classList.add("active");
-
-    const range = btn.getAttribute("data-range");
-
-    const filtered = filterRange(range);
-
-    // FIX: graph disappearing — always rebuild chart
-    buildChart(filtered);
+    updateChart(btn.dataset.range);
   });
 });
 
-loadFundData();
+// Init
+fetchFundData();
+
 
 
 
