@@ -1,12 +1,23 @@
-alert("JS Loaded Successfully");
-
-
 const schemeCode = 125497;
 let fullNavData = [];
 let chart;
 
+// Show loading spinner
+function showLoading() {
+  document.getElementById("performanceChart").style.display = "none";
+  document.getElementById("loader").style.display = "block";
+}
+
+// Hide loading spinner
+function hideLoading() {
+  document.getElementById("performanceChart").style.display = "block";
+  document.getElementById("loader").style.display = "none";
+}
+
 // Fetch Fund Data
 async function fetchFundData() {
+  showLoading();
+
   const res = await fetch(`https://api.mfapi.in/mf/${schemeCode}`);
   const data = await res.json();
 
@@ -15,12 +26,24 @@ async function fetchFundData() {
     data.data[data.data.length - 1].nav;
 
   document.getElementById("aum-value").textContent = data.meta?.fund_house || "--";
-  document.getElementById("category-value").textContent = data.meta?.scheme_category || "--";
+  document.getElementById("category-value").textContent =
+    data.meta?.scheme_category || "--";
 
-  fullNavData = data.data.reverse(); // Arranged oldest → newest
+  fullNavData = data.data.reverse(); // oldest → newest order
   updateChart("ALL");
+
+  hideLoading();
 }
 
+// Return % calculator
+function calculatePercentage(data) {
+  if (data.length < 2) return Array(data.length).fill(0);
+
+  const first = parseFloat(data[0].nav);
+  return data.map(d => (((parseFloat(d.nav) - first) / first) * 100).toFixed(2));
+}
+
+// Filter Data based on range
 function filterData(range) {
   const now = new Date();
   const ranges = {
@@ -41,11 +64,13 @@ function filterData(range) {
   });
 }
 
+// Update Chart
 function updateChart(range) {
-  const chartData = filterData(range);
+  const filtered = filterData(range);
 
-  const labels = chartData.map(d => d.date);
-  const values = chartData.map(d => parseFloat(d.nav));
+  const labels = filtered.map(d => d.date);
+  const navValues = filtered.map(d => parseFloat(d.nav));
+  const percentValues = calculatePercentage(filtered);
 
   if (chart) chart.destroy();
 
@@ -53,48 +78,84 @@ function updateChart(range) {
     type: "line",
     data: {
       labels,
-      datasets: [{
-        label: "NAV",
-        data: values,
-        borderColor: "#1a73e8",
-        backgroundColor: "rgba(26,115,232,0.2)",
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2,
-        pointRadius: 0
-      }]
+      datasets: [
+        {
+          label: "NAV",
+          data: navValues,
+          borderColor: "#1a73e8",
+          backgroundColor: "rgba(26,115,232,0.2)",
+          yAxisID: "y",
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2,
+          pointRadius: 0
+        },
+        {
+          label: "% Returns",
+          data: percentValues,
+          borderColor: "#e63946",
+          backgroundColor: "rgba(230,57,70,0.2)",
+          yAxisID: "y1",
+          fill: false,
+          tension: 0.4,
+          borderWidth: 2,
+          pointRadius: 0
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: {
+        duration: 1200,
+        easing: "easeOutQuart"
+      },
       plugins: {
-        legend: { display: false },
         tooltip: {
+          mode: "index",
+          intersect: false,
           callbacks: {
-            label: ctx => `NAV: ₹${ctx.raw}`
+            label: (ctx) => {
+              if (ctx.dataset.label === "NAV") {
+                return `NAV: ₹${ctx.raw}`;
+              }
+              return `% Return: ${ctx.raw}%`;
+            }
+          }
+        },
+        legend: {
+          labels: {
+            usePointStyle: true
           }
         }
       },
       scales: {
-        x: { ticks: { maxTicksLimit: 8 } },
-        y: { beginAtZero: false }
+        y: {
+          type: "linear",
+          position: "left",
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          grid: { drawOnChartArea: false }
+        }
       }
     }
   });
 }
 
-// Range Button Click
+// Button Click Events
 document.querySelectorAll(".chart-filters button").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelector(".chart-filters .active")?.classList.remove("active");
     btn.classList.add("active");
-
     updateChart(btn.dataset.range);
   });
 });
 
 // Init
 fetchFundData();
+
 
 
 
